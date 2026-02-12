@@ -98,9 +98,14 @@ def normalize_whitespace(text: str) -> str:
     for line in text.split("\n"):
         # Remove trailing whitespace
         line = line.rstrip()
-        # Collapse multiple spaces to single space (but preserve indentation)
-        line = re.sub(r"[ \t]+", " ", line)
-        lines.append(line)
+        if not line:
+            lines.append(line)
+            continue
+        # Preserve leading indentation while collapsing internal whitespace
+        match = re.match(r"^([ \t]*)(.*)$", line)
+        leading = match.group(1)
+        content = re.sub(r"[ \t]+", " ", match.group(2))
+        lines.append(f"{leading}{content}")
 
     # Join lines and collapse multiple blank lines
     text = "\n".join(lines)

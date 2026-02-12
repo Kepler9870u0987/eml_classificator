@@ -14,7 +14,7 @@ Tests cover:
 import io
 
 import pytest
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, Client
 
 from eml_classificator.api.app import app
 from tests.fixtures.emails import SAMPLE_EMAILS
@@ -22,8 +22,10 @@ from tests.fixtures.emails import SAMPLE_EMAILS
 
 @pytest.fixture
 def client():
-    """Create FastAPI TestClient for integration tests."""
-    return TestClient(app)
+    """Create HTTP client for integration tests."""
+    transport = ASGITransport(app=app)
+    with Client(transport=transport, base_url="http://test") as client:
+        yield client
 
 
 class TestIngestEmlSuccess:
