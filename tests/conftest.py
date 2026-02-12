@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import AsyncGenerator, Generator
 
 import pytest
+import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from eml_classificator.api.app import app
@@ -21,7 +22,7 @@ from eml_classificator.config import Settings
 from .fixtures.emails import SAMPLE_EMAILS
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """
     Create async HTTP client for testing FastAPI endpoints.
