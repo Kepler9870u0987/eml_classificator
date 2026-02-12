@@ -400,3 +400,124 @@ class TestIngestEmlMetrics:
         doc = response.json()["document"]
         assert "ingestion_timestamp" in doc
         assert doc["ingestion_timestamp"] is not None
+
+
+class TestRemovedSectionsTracking:
+    """Integration tests for removed_sections tracking via API."""
+
+    @pytest.mark.integration
+    async def test_removed_sections_default_not_included(self, client):
+        """Test that removed_sections is empty by default (no tracking)."""
+        eml_bytes = SAMPLE_EMAILS["italian_signature"]
+        files = {"file": ("test.eml", io.BytesIO(eml_bytes), "message/rfc822")}
+
+        response = await client.post("/api/v1/ingest/eml", files=files)
+
+        assert response.status_code == 200
+        doc = response.json()["document"]
+        # Default is include_removed_sections=False, so should be empty
+        assert "removed_sections" in doc
+        assert len(doc["removed_sections"]) == 0
+
+    @pytest.mark.integration
+    async def test_removed_sections_with_tracking_enabled(self, client):
+        """Test removed_sections populated when include_removed_sections=true."""
+        eml_bytes = SAMPLE_EMAILS["italian_signature"]
+        files = {"file": ("test.eml", io.BytesIO(eml_bytes), "message/rfc822")}
+
+        response = await client.post(
+            "/api/v1/ingest/eml?include_removed_sections=true", files=files
+        )
+
+        assert response.status_code == 200
+        doc = response.json()["document"]
+        # Should have tracked removals
+        assert "removed_sections" in doc
+        assert len(doc["removed_sections"]) > 0
+
+        # Check structure of removed sections
+        for section in doc["removed_sections"]:
+            assert "type" in section
+            assert section["type"] in [
+                "signature",
+                "quote",
+                "reply_header",
+                "disclaimer",
+            ]
+            assert "span_start" in section
+            assert "span_end" in section
+            assert "content" in section
+            assert section["span_start"] >= 0
+            assert section["span_end"] >= section["span_start"]
+
+    @pytest.mark.integration
+    async def test_signature_removal_tracked(self, client):
+        """Test that signature removal is logged in removed_sections."""
+        eml_bytes = SAMPLE_EMAILS["italian_signature"]
+        files = {"file": ("test.eml", io.BytesIO(eml_bytes), "message/rfc822")}
+
+        response = await client.post(
+            "/api/v1/ingest/eml?include_removed_sections=true", files=files
+        )
+
+        assert response.status_code == 200
+        doc = response.json()["document"]
+
+        # Should have signature removal tracked
+        removed_signatures = [
+            r for r in doc["removed_sections"] if r["type"] == "signature"
+        ]
+        assert len(removed_signatures) > 0
+
+        # Check content captured
+        sig = removed_signatures[0]
+        assert len(sig["content"]) > 0
+        # Italian signatures typically have "Cordiali saluti" or similar
+        assert any(
+            phrase in sig["content"].lower()
+            for phrase in ["cordiali", "saluti", "distinti", "--"]
+        )
+
+    @pytest.mark.integration
+    async def test_reply_chain_removal_tracked(self, client):
+        """Test that reply chain removal is tracked."""
+        eml_bytes = SAMPLE_EMAILS["reply_chain"]
+        files = {"file": ("test.eml", io.BytesIO(eml_bytes), "message/rfc822")}
+
+        response = await client.post(
+            "/api/v1/ingest/eml?include_removed_sections=true", files=files
+        )
+
+        assert response.status_code == 200
+        doc = response.json()["document"]
+
+        # Should have reply/quote removal tracked
+        removed_replies = [
+            r
+            for r in doc["removed_sections"]
+            if r["type"] in ("quote", "reply_header")
+        ]
+        assert len(removed_replies) > 0
+
+        # Check content has quote markers or reply headers
+        reply_content = " ".join(r["content"] for r in removed_replies)
+        assert any(marker in reply_content for marker in [">", "wrote:", "ha scritto:"])
+
+    @pytest.mark.integration
+    async def test_removed_sections_span_positions(self, client):
+        """Test that span positions are accurate."""
+        eml_bytes = SAMPLE_EMAILS["italian_signature"]
+        files = {"file": ("test.eml", io.BytesIO(eml_bytes), "message/rfc822")}
+
+        response = await client.post(
+            "/api/v1/ingest/eml?include_removed_sections=true", files=files
+        )
+
+        assert response.status_code == 200
+        doc = response.json()["document"]
+
+        # Verify spans are sensible
+        for section in doc["removed_sections"]:
+            assert section["span_start"] < section["span_end"]
+            assert len(section["content"]) == section["span_end"] - section["span_start"]
+

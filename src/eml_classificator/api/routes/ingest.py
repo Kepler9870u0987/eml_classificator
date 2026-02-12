@@ -35,7 +35,11 @@ async def ingest_eml_file(
         pattern="^(none|minimal|standard|aggressive)$",
         description="PII redaction level"
     ),
-    store_html: bool = Query(default=False, description="Whether to store original HTML")
+    store_html: bool = Query(default=False, description="Whether to store original HTML"),
+    include_removed_sections: bool = Query(
+        default=False,
+        description="Whether to track and return removed text sections (signatures, quotes, disclaimers)"
+    )
 ) -> IngestEmlResponse:
     """
     Ingest a .eml file and return canonicalized EmailDocument.
@@ -52,6 +56,7 @@ async def ingest_eml_file(
         file: Uploaded .eml file
         pii_redaction_level: none, minimal, standard, aggressive
         store_html: Whether to include original HTML in response
+        include_removed_sections: Whether to track removed sections (default False for smaller responses)
 
     Returns:
         IngestEmlResponse with EmailDocument or error
@@ -112,12 +117,17 @@ async def ingest_eml_file(
             body_text = ""
 
         # 4. Canonicalize text
-        canonical_text = canonicalize_text(body_text, remove_signatures=True)
+        canonical_text, removed_sections = canonicalize_text(
+            body_text,
+            remove_signatures=True,
+            keep_audit_info=include_removed_sections
+        )
 
         logger.info(
             "Text canonicalized",
             original_length=len(body_text),
             canonical_length=len(canonical_text),
+            removed_sections_count=len(removed_sections),
         )
 
         # 5. PII redaction
@@ -150,6 +160,7 @@ async def ingest_eml_file(
             body_html=body_html if store_html else None,
             canonical_text=canonical_text,
             attachments=attachments,
+            removed_sections=removed_sections,
             pii_redacted=len(redaction_log) > 0,
             pii_redaction_log=redaction_log,
             pipeline_version=get_current_pipeline_version(pii_redaction_level),
