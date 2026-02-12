@@ -65,7 +65,9 @@ Thumbs.db
 
 # Directory temporanee Claude nella root del repo
 /tmpclaude-*/
+*tmpclaude*
 
 # In qualunque sotto-cartella (più generico)
 **/tmpclaude-*/
+
 
