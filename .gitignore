@@ -59,3 +59,10 @@ Thumbs.db
 # Project specific
 *.eml
 !tests/fixtures/*.eml
+
+# Directory temporanee Claude nella root del repo
+/tmpclaude-*/
+
+# In qualunque sotto-cartella (più generico)
+**/tmpclaude-*/
+
