@@ -2,7 +2,7 @@
 Email ingestion endpoint - orchestrates the complete ingestion pipeline.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse
@@ -57,7 +57,7 @@ async def ingest_eml_file(
         IngestEmlResponse with EmailDocument or error
     """
     start_time = time()
-    ingestion_timestamp = datetime.utcnow()
+    ingestion_timestamp = datetime.now(timezone.utc)
 
     try:
         # Validate file type

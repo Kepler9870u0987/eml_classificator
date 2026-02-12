@@ -19,36 +19,46 @@ class PipelineVersion(BaseModel):
 
     # Core component versions
     dictionary_version: int = Field(
-        description="Dynamic dictionary version for keyword/NER matching", example=1
+        description="Dynamic dictionary version for keyword/NER matching",
+        json_schema_extra={"example": 1},
     )
     model_version: str = Field(
-        description="LLM model identifier", example="deepseek-r1-2026-01"
+        description="LLM model identifier",
+        json_schema_extra={"example": "deepseek-r1-2026-01"},
     )
     parser_version: str = Field(
-        description="Email parser version", example="eml-parser-1.0.0"
+        description="Email parser version",
+        json_schema_extra={"example": "eml-parser-1.0.0"},
     )
     stoplist_version: str = Field(
-        description="Italian stopwords list version", example="stopwords-it-2025.1"
+        description="Italian stopwords list version",
+        json_schema_extra={"example": "stopwords-it-2025.1"},
     )
     ner_model_version: str = Field(
-        description="spaCy NER model version", example="it_core_news_lg-3.8.2"
+        description="spaCy NER model version",
+        json_schema_extra={"example": "it_core_news_lg-3.8.2"},
     )
     schema_version: str = Field(
-        description="JSON schema version for LLM output", example="json-schema-v2.2"
+        description="JSON schema version for LLM output",
+        json_schema_extra={"example": "json-schema-v2.2"},
     )
     tool_calling_version: str = Field(
-        description="LLM tool calling API version", example="openai-tool-calling-2026"
+        description="LLM tool calling API version",
+        json_schema_extra={"example": "openai-tool-calling-2026"},
     )
 
     # Ingestion-specific versions
     canonicalization_version: str = Field(
-        description="Text canonicalization algorithm version", example="canon-1.0.0"
+        description="Text canonicalization algorithm version",
+        json_schema_extra={"example": "canon-1.0.0"},
     )
     pii_redaction_version: str = Field(
-        description="PII redaction algorithm version", example="pii-redact-1.0.0"
+        description="PII redaction algorithm version",
+        json_schema_extra={"example": "pii-redact-1.0.0"},
     )
     pii_redaction_level: Literal["none", "minimal", "standard", "aggressive"] = Field(
-        description="PII redaction aggressiveness level", example="standard"
+        description="PII redaction aggressiveness level",
+        json_schema_extra={"example": "standard"},
     )
 
     model_config = {

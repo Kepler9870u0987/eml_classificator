@@ -36,8 +36,14 @@ class IngestEmlResponse(BaseModel):
 class HealthResponse(BaseModel):
     """Health check response."""
 
-    status: str = Field(description="Service status", example="healthy")
-    version: str = Field(description="API version", example="1.0.0")
+    status: str = Field(
+        description="Service status",
+        json_schema_extra={"example": "healthy"},
+    )
+    version: str = Field(
+        description="API version",
+        json_schema_extra={"example": "1.0.0"},
+    )
     uptime_seconds: float = Field(description="Service uptime")
 
 
