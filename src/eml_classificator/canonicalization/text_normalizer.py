@@ -182,7 +182,41 @@ def remove_urls(text: str, replacement: str = "[URL]") -> str:
     return re.sub(url_pattern, replacement, text)
 
 
-def remove_email_signatures(text: str) -> Tuple[str, bool]:
+def remove_disclaimers(
+    text: str, keep_audit_info: bool = True
+) -> Tuple[str, List[RemovedSection]]:
+    """
+    Remove long disclaimer sections (typically at end of corporate emails).
+
+    Args:
+        text: Email body text
+        keep_audit_info: Whether to track removed sections
+
+    Returns:
+        Tuple of (text_without_disclaimers, list_of_removed_sections)
+    """
+    removed_sections: List[RemovedSection] = []
+
+    for pattern, section_type, _ in DISCLAIMER_PATTERNS:
+        match = re.search(pattern, text)
+        if match:
+            if keep_audit_info:
+                removed_sections.append(
+                    RemovedSection(
+                        type=section_type,
+                        span_start=match.start(),
+                        span_end=match.end(),
+                        content=match.group(0),
+                    )
+                )
+            text = text[: match.start()]
+
+    return text, removed_sections
+
+
+def remove_email_signatures(
+    text: str, keep_audit_info: bool = True
+) -> Tuple[str, List[RemovedSection]]:
     """
     Detect and remove email signatures.
 
@@ -194,22 +228,36 @@ def remove_email_signatures(text: str) -> Tuple[str, bool]:
 
     Args:
         text: Email body text
+        keep_audit_info: Whether to track removed sections
 
     Returns:
-        Tuple of (text_without_signature, signature_was_detected)
+        Tuple of (text_without_signature, list_of_removed_sections)
     """
     lines = text.split("\n")
-    signature_detected = False
+    removed_sections: List[RemovedSection] = []
     result_lines = []
+    char_position = 0
 
     for i, line in enumerate(lines):
         is_signature = False
+        line_start_pos = char_position
 
         # Check against signature patterns
-        for pattern in SIGNATURE_PATTERNS:
+        for pattern, section_type, _ in SIGNATURE_PATTERNS:
             if re.match(pattern, line.strip(), re.IGNORECASE):
                 is_signature = True
-                signature_detected = True
+
+                if keep_audit_info:
+                    # Calculate span for this signature and everything after
+                    remaining_text = "\n".join(lines[i:])
+                    removed_sections.append(
+                        RemovedSection(
+                            type=section_type,
+                            span_start=line_start_pos,
+                            span_end=line_start_pos + len(remaining_text),
+                            content=remaining_text,
+                        )
+                    )
                 break
 
         if is_signature:
@@ -217,11 +265,14 @@ def remove_email_signatures(text: str) -> Tuple[str, bool]:
             break
 
         result_lines.append(line)
+        char_position += len(line) + 1  # +1 for newline
 
-    return "\n".join(result_lines), signature_detected
+    return "\n".join(result_lines), removed_sections
 
 
-def remove_reply_chains(text: str) -> Tuple[str, bool]:
+def remove_reply_chains(
+    text: str, keep_audit_info: bool = True
+) -> Tuple[str, List[RemovedSection]]:
     """
     Detect and remove quoted reply chains.
 
@@ -234,40 +285,88 @@ def remove_reply_chains(text: str) -> Tuple[str, bool]:
 
     Args:
         text: Email body text
+        keep_audit_info: Whether to track removed sections
 
     Returns:
-        Tuple of (text_without_replies, replies_were_detected)
+        Tuple of (text_without_replies, list_of_removed_sections)
     """
     lines = text.split("\n")
-    replies_detected = False
+    removed_sections: List[RemovedSection] = []
     result_lines = []
     in_quoted_block = False
+    quoted_block_start = 0
+    quoted_block_lines = []
+    char_position = 0
 
     for line in lines:
         is_quoted = False
+        line_start_pos = char_position
 
         # Check if line is quoted
-        for pattern in REPLY_PATTERNS:
+        for pattern, section_type, _ in REPLY_PATTERNS:
             if re.match(pattern, line.strip(), re.IGNORECASE):
                 is_quoted = True
-                replies_detected = True
-                in_quoted_block = True
+
+                if not in_quoted_block:
+                    # Starting a new quoted block
+                    in_quoted_block = True
+                    quoted_block_start = line_start_pos
+                    quoted_block_lines = []
                 break
 
         # Also consider lines starting with > as quoted
         if line.strip().startswith(">"):
             is_quoted = True
-            replies_detected = True
-            in_quoted_block = True
+            if not in_quoted_block:
+                in_quoted_block = True
+                quoted_block_start = line_start_pos
+                quoted_block_lines = []
 
-        if not is_quoted:
-            # Check if we should exit quoted block (non-empty line after quotes)
+        if is_quoted:
+            quoted_block_lines.append(line)
+        else:
+            # Not quoted - check if we should finalize a quoted block
             if in_quoted_block and line.strip():
-                # This could be content after quotes, so reset
+                # End of quoted block, save it
+                if keep_audit_info and quoted_block_lines:
+                    quoted_content = "\n".join(quoted_block_lines)
+                    removed_sections.append(
+                        RemovedSection(
+                            type="quote"
+                            if any(
+                                l.strip().startswith((">", "|"))
+                                for l in quoted_block_lines
+                            )
+                            else "reply_header",
+                            span_start=quoted_block_start,
+                            span_end=quoted_block_start + len(quoted_content),
+                            content=quoted_content,
+                        )
+                    )
+
+                # Reset block tracking
                 in_quoted_block = False
+                quoted_block_lines = []
+
             result_lines.append(line)
 
-    return "\n".join(result_lines), replies_detected
+        char_position += len(line) + 1  # +1 for newline
+
+    # Handle case where text ends in a quoted block
+    if in_quoted_block and keep_audit_info and quoted_block_lines:
+        quoted_content = "\n".join(quoted_block_lines)
+        removed_sections.append(
+            RemovedSection(
+                type="quote"
+                if any(l.strip().startswith((">", "|")) for l in quoted_block_lines)
+                else "reply_header",
+                span_start=quoted_block_start,
+                span_end=quoted_block_start + len(quoted_content),
+                content=quoted_content,
+            )
+        )
+
+    return "\n".join(result_lines), removed_sections
 
 
 def remove_excessive_newlines(text: str, max_consecutive: int = 2) -> str:
