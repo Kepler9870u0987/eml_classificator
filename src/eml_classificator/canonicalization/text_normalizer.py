@@ -6,32 +6,67 @@ signature removal (with Italian patterns), and reply chain detection.
 """
 
 import re
-from typing import Tuple
+from typing import List, Tuple
+
+from ..models.canonicalization import RemovedSection
 
 # Version constant for audit trail
-CANONICALIZATION_VERSION = "canon-1.0.0"
+CANONICALIZATION_VERSION = "canon-1.2.0"
 
-# Italian signature patterns
+# Pattern definitions with types for intelligent merging
+# Each pattern is a tuple of (pattern, type, description)
 SIGNATURE_PATTERNS = [
-    r"^--+\s*$",  # Standard signature delimiter
-    r"^___+\s*$",  # Alternative delimiter
-    r"^\s*(Cordiali saluti|Distinti saluti|Saluti|Best regards|Regards|Grazie)",
-    r"^Sent from my (iPhone|iPad|Android|Samsung|Huawei)",
-    r"^Inviato da",
+    (r"^--+\s*$", "signature", "Standard signature delimiter"),
+    (r"^___+\s*$", "signature", "Alternative signature delimiter"),
+    (
+        r"^\s*(Cordiali saluti|Distinti saluti|Saluti|Best regards|Regards|Grazie)",
+        "signature",
+        "Italian/English closings",
+    ),
+    (
+        r"^Sent from my (iPhone|iPad|Android|Samsung|Huawei)",
+        "signature",
+        "Mobile device signatures",
+    ),
+    (r"^Inviato da", "signature", "Italian 'sent from'"),
 ]
 
-# Reply chain patterns
+# Disclaimer patterns (from spec)
+DISCLAIMER_PATTERNS = [
+    (
+        r"(?is)\n_{10,}.*$",
+        "disclaimer",
+        "Long underscore disclaimers",
+    ),  # NEW from spec
+]
+
+# Reply chain patterns with types
 REPLY_PATTERNS = [
-    r"^>+\s",  # Quoted lines
-    r"^\|+\s",  # Alternative quote style
-    r"^On .+ wrote:",  # English reply header
-    r"^Il .+ ha scritto:",  # Italian reply header  # From/To forwarded message headers
-    r"^-+\s*Original Message\s*-+",
-    r"^-+\s*Messaggio originale\s*-+",
+    (r"^>+\s", "quote", "Quoted lines"),
+    (r"^\|+\s", "quote", "Alternative quote style"),
+    (r"^On .+ wrote:", "reply_header", "English reply header"),
+    (r"^Il .+ ha scritto:", "reply_header", "Italian reply header"),
+    (
+        r"(?is)\nIl giorno .+ ha scritto:.+",
+        "reply_header",
+        "Italian reply with context",
+    ),  # NEW from spec
+    (
+        r"^-+\s*Original Message\s*-+",
+        "reply_header",
+        "English forwarded message",
+    ),
+    (
+        r"^-+\s*Messaggio originale\s*-+",
+        "reply_header",
+        "Italian forwarded message",
+    ),
 ]
 
 
-def canonicalize_text(text: str, remove_signatures: bool = True) -> str:
+def canonicalize_text(
+    text: str, remove_signatures: bool = True, keep_audit_info: bool = True
+) -> Tuple[str, List[RemovedSection]]:
     """
     Canonicalize email text for deterministic processing.
 
@@ -40,39 +75,57 @@ def canonicalize_text(text: str, remove_signatures: bool = True) -> str:
     2. Remove excessive whitespace
     3. Remove email signatures (if enabled)
     4. Remove quote/reply chains
-    5. Convert to lowercase
-    6. Strip leading/trailing whitespace
+    5. Remove disclaimers
+    6. Convert to lowercase
+    7. Strip leading/trailing whitespace
 
     Args:
         text: Raw email text
         remove_signatures: Whether to attempt signature removal
+        keep_audit_info: Whether to track removed sections (default True for GDPR compliance)
 
     Returns:
-        Canonicalized text string
+        Tuple of (canonicalized_text, list_of_removed_sections)
+        If keep_audit_info=False, returns empty list for removed_sections
     """
     if not text:
-        return ""
+        return "", []
 
-    # 1. Normalize line endings
+    removed_sections: List[RemovedSection] = []
+
+    # 1. Normalize line endings BEFORE tracking positions
     text = text.replace("\r\n", "\n").replace("\r", "\n")
 
     # 2. Normalize whitespace
     text = normalize_whitespace(text)
 
-    # 3. Remove signatures
+    # 3. Remove disclaimers first (typically at end)
+    text, disclaimer_sections = remove_disclaimers(
+        text, keep_audit_info=keep_audit_info
+    )
+    if keep_audit_info:
+        removed_sections.extend(disclaimer_sections)
+
+    # 4. Remove signatures
     if remove_signatures:
-        text, _ = remove_email_signatures(text)
+        text, signature_sections = remove_email_signatures(
+            text, keep_audit_info=keep_audit_info
+        )
+        if keep_audit_info:
+            removed_sections.extend(signature_sections)
 
-    # 4. Remove reply chains
-    text, _ = remove_reply_chains(text)
+    # 5. Remove reply chains
+    text, reply_sections = remove_reply_chains(text, keep_audit_info=keep_audit_info)
+    if keep_audit_info:
+        removed_sections.extend(reply_sections)
 
-    # 5. Convert to lowercase
+    # 6. Convert to lowercase (after tracking - positions still map back)
     text = text.lower()
 
-    # 6. Strip whitespace
+    # 7. Strip whitespace
     text = text.strip()
 
-    return text
+    return text, removed_sections
 
 
 def normalize_whitespace(text: str) -> str:

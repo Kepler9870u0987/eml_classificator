@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
+from .canonicalization import RemovedSection
 from .pipeline_version import PipelineVersion
 
 
@@ -72,6 +73,12 @@ class EmailDocument(BaseModel):
     # Attachments
     attachments: List[AttachmentMetadata] = Field(
         default_factory=list, description="Attachment metadata (content not stored)"
+    )
+
+    # Canonicalization tracking
+    removed_sections: List[RemovedSection] = Field(
+        default_factory=list,
+        description="Audit log of removed text sections (signatures, quotes, disclaimers)",
     )
 
     # PII Redaction tracking
