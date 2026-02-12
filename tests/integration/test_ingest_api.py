@@ -14,13 +14,14 @@ Tests cover:
 import io
 
 import pytest
+import pytest_asyncio
 
 from tests.fixtures.emails import SAMPLE_EMAILS
 
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(async_client):
     """Provide async HTTP client for integration tests."""
     yield async_client
@@ -44,7 +45,7 @@ class TestIngestEmlSuccess:
         doc = data["document"]
         assert doc["document_id"].startswith("eml-")
         assert doc["headers"]["from_address"] == "sender@example.com"
-        assert "Hello, this is a simple test email" in doc["body_text"].lower()
+        assert "hello, this is a simple test email" in doc["body_text"].lower()
         assert len(doc["canonical_text"]) > 0
 
     @pytest.mark.integration
