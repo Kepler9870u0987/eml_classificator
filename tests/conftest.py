@@ -2,7 +2,7 @@
 Global pytest fixtures and configuration for test suite.
 
 This module provides reusable fixtures for:
-- FastAPI TestClient
+- HTTP clients
 - Mock settings/configuration
 - Sample email data
 - Temporary files
@@ -14,24 +14,11 @@ from datetime import datetime
 from typing import AsyncGenerator, Generator
 
 import pytest
-from httpx import ASGITransport, AsyncClient, Client
+from httpx import ASGITransport, AsyncClient
 
 from eml_classificator.api.app import app
 from eml_classificator.config import Settings
 from .fixtures.emails import SAMPLE_EMAILS
-
-
-@pytest.fixture
-def test_client() -> Generator[Client, None, None]:
-    """
-    Create HTTP client for API integration tests.
-
-    Returns:
-        Client instance configured with the app
-    """
-    transport = ASGITransport(app=app)
-    with Client(transport=transport, base_url="http://test") as client:
-        yield client
 
 
 @pytest.fixture

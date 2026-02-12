@@ -14,30 +14,28 @@ Tests cover:
 import io
 
 import pytest
-from httpx import ASGITransport, Client
 
-from eml_classificator.api.app import app
 from tests.fixtures.emails import SAMPLE_EMAILS
+
+pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def client():
-    """Create HTTP client for integration tests."""
-    transport = ASGITransport(app=app)
-    with Client(transport=transport, base_url="http://test") as client:
-        yield client
+async def client(async_client):
+    """Provide async HTTP client for integration tests."""
+    yield async_client
 
 
 class TestIngestEmlSuccess:
     """Tests for successful email ingestion scenarios."""
 
     @pytest.mark.integration
-    def test_ingest_eml_success_plain_text(self, client):
+    async def test_ingest_eml_success_plain_text(self, client):
         """Test ingesting simple plain text email."""
         eml_bytes = SAMPLE_EMAILS["simple_plain_text"]
         files = {"file": ("test.eml", io.BytesIO(eml_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -50,11 +48,11 @@ class TestIngestEmlSuccess:
         assert len(doc["canonical_text"]) > 0
 
     @pytest.mark.integration
-    def test_ingest_eml_success_html(self, client, html_only_eml):
+    async def test_ingest_eml_success_html(self, client, html_only_eml):
         """Test ingesting HTML-only email (conversion to text)."""
         files = {"file": ("test.eml", io.BytesIO(html_only_eml), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -65,11 +63,11 @@ class TestIngestEmlSuccess:
         assert "support@example.com" not in doc["canonical_text"]  # Should be redacted
 
     @pytest.mark.integration
-    def test_ingest_eml_success_multipart(self, client, multipart_html_eml):
+    async def test_ingest_eml_success_multipart(self, client, multipart_html_eml):
         """Test ingesting multipart email with both plain and HTML."""
         files = {"file": ("test.eml", io.BytesIO(multipart_html_eml), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -83,11 +81,11 @@ class TestIngestEmlAttachments:
     """Tests for attachment handling."""
 
     @pytest.mark.integration
-    def test_ingest_eml_with_attachments(self, client, attachment_eml):
+    async def test_ingest_eml_with_attachments(self, client, attachment_eml):
         """Test that attachment metadata is extracted."""
         files = {"file": ("test.eml", io.BytesIO(attachment_eml), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -99,12 +97,12 @@ class TestIngestEmlAttachments:
         assert att["size_bytes"] > 0
 
     @pytest.mark.integration
-    def test_ingest_eml_with_multiple_attachments(self, client):
+    async def test_ingest_eml_with_multiple_attachments(self, client):
         """Test handling multiple attachments."""
         eml_bytes = SAMPLE_EMAILS["multiple_attachments"]
         files = {"file": ("test.eml", io.BytesIO(eml_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -119,12 +117,12 @@ class TestIngestEmlPIIRedaction:
     """Tests for PII redaction levels."""
 
     @pytest.mark.integration
-    def test_ingest_eml_pii_redaction_none(self, client, pii_email_bytes):
+    async def test_ingest_eml_pii_redaction_none(self, client, pii_email_bytes):
         """Test with no PII redaction."""
         files = {"file": ("test.eml", io.BytesIO(pii_email_bytes), "message/rfc822")}
         params = {"pii_redaction_level": "none"}
 
-        response = client.post("/api/v1/ingest/eml", files=files, params=params)
+        response = await client.post("/api/v1/ingest/eml", files=files, params=params)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -134,12 +132,12 @@ class TestIngestEmlPIIRedaction:
         assert "@" in doc["canonical_text"] or "gmail" in doc["canonical_text"]
 
     @pytest.mark.integration
-    def test_ingest_eml_pii_redaction_minimal(self, client, pii_email_bytes):
+    async def test_ingest_eml_pii_redaction_minimal(self, client, pii_email_bytes):
         """Test minimal PII redaction (emails only)."""
         files = {"file": ("test.eml", io.BytesIO(pii_email_bytes), "message/rfc822")}
         params = {"pii_redaction_level": "minimal"}
 
-        response = client.post("/api/v1/ingest/eml", files=files, params=params)
+        response = await client.post("/api/v1/ingest/eml", files=files, params=params)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -151,12 +149,12 @@ class TestIngestEmlPIIRedaction:
         assert len(phone_redactions) == 0
 
     @pytest.mark.integration
-    def test_ingest_eml_pii_redaction_standard(self, client, pii_email_bytes):
+    async def test_ingest_eml_pii_redaction_standard(self, client, pii_email_bytes):
         """Test standard PII redaction (emails + phones)."""
         files = {"file": ("test.eml", io.BytesIO(pii_email_bytes), "message/rfc822")}
         params = {"pii_redaction_level": "standard"}
 
-        response = client.post("/api/v1/ingest/eml", files=files, params=params)
+        response = await client.post("/api/v1/ingest/eml", files=files, params=params)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -168,11 +166,11 @@ class TestIngestEmlPIIRedaction:
         assert len(phone_redactions) > 0
 
     @pytest.mark.integration
-    def test_ingest_eml_pii_audit_log(self, client, pii_email_bytes):
+    async def test_ingest_eml_pii_audit_log(self, client, pii_email_bytes):
         """Test that PII audit log is correctly populated."""
         files = {"file": ("test.eml", io.BytesIO(pii_email_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -192,12 +190,12 @@ class TestIngestEmlStoreHtml:
     """Tests for HTML storage option."""
 
     @pytest.mark.integration
-    def test_ingest_eml_store_html_true(self, client, html_only_eml):
+    async def test_ingest_eml_store_html_true(self, client, html_only_eml):
         """Test returning HTML when store_html=true."""
         files = {"file": ("test.eml", io.BytesIO(html_only_eml), "message/rfc822")}
         params = {"store_html": "true"}
 
-        response = client.post("/api/v1/ingest/eml", files=files, params=params)
+        response = await client.post("/api/v1/ingest/eml", files=files, params=params)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -205,12 +203,12 @@ class TestIngestEmlStoreHtml:
         assert "<html>" in doc["body_html"] or "<body>" in doc["body_html"]
 
     @pytest.mark.integration
-    def test_ingest_eml_store_html_false(self, client, html_only_eml):
+    async def test_ingest_eml_store_html_false(self, client, html_only_eml):
         """Test that HTML is not returned when store_html=false."""
         files = {"file": ("test.eml", io.BytesIO(html_only_eml), "message/rfc822")}
         params = {"store_html": "false"}
 
-        response = client.post("/api/v1/ingest/eml", files=files, params=params)
+        response = await client.post("/api/v1/ingest/eml", files=files, params=params)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -221,11 +219,11 @@ class TestIngestEmlTextProcessing:
     """Tests for text processing (signatures, reply chains)."""
 
     @pytest.mark.integration
-    def test_ingest_eml_signature_removal(self, client, italian_signature_eml):
+    async def test_ingest_eml_signature_removal(self, client, italian_signature_eml):
         """Test that Italian signatures are removed."""
         files = {"file": ("test.eml", io.BytesIO(italian_signature_eml), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -237,11 +235,11 @@ class TestIngestEmlTextProcessing:
         assert "informazioni" in canonical or "servizio" in canonical
 
     @pytest.mark.integration
-    def test_ingest_eml_reply_chain_removal(self, client, reply_chain_eml):
+    async def test_ingest_eml_reply_chain_removal(self, client, reply_chain_eml):
         """Test that quoted reply chains are removed."""
         files = {"file": ("test.eml", io.BytesIO(reply_chain_eml), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -256,11 +254,11 @@ class TestIngestEmlDeterminism:
     """Tests for deterministic processing."""
 
     @pytest.mark.integration
-    def test_ingest_eml_document_id_format(self, client, sample_eml_bytes):
+    async def test_ingest_eml_document_id_format(self, client, sample_eml_bytes):
         """Test that document ID has correct format."""
         files = {"file": ("test.eml", io.BytesIO(sample_eml_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -272,11 +270,11 @@ class TestIngestEmlVersionTracking:
     """Tests for pipeline version tracking."""
 
     @pytest.mark.integration
-    def test_ingest_eml_pipeline_version(self, client, sample_eml_bytes):
+    async def test_ingest_eml_pipeline_version(self, client, sample_eml_bytes):
         """Test that PipelineVersion is included in response."""
         files = {"file": ("test.eml", io.BytesIO(sample_eml_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -293,17 +291,17 @@ class TestIngestEmlErrorHandling:
     """Tests for error handling."""
 
     @pytest.mark.integration
-    def test_ingest_eml_invalid_file_extension(self, client):
+    async def test_ingest_eml_invalid_file_extension(self, client):
         """Test rejection of non-.eml files."""
         files = {"file": ("test.txt", io.BytesIO(b"Not an eml"), "text/plain")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 400
         assert "must be .eml format" in response.json()["detail"].lower()
 
     @pytest.mark.integration
-    def test_ingest_eml_file_too_large(self, client):
+    async def test_ingest_eml_file_too_large(self, client):
         """Test rejection of files exceeding size limit."""
         # Create a file larger than the limit (25MB default)
         large_content = b"X" * (26 * 1024 * 1024)  # 26 MB
@@ -316,17 +314,17 @@ Content-Type: text/plain
 
         files = {"file": ("large.eml", io.BytesIO(large_eml), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 413
         assert "exceeds maximum" in response.json()["detail"].lower()
 
     @pytest.mark.integration
-    def test_ingest_eml_invalid_rfc5322(self, client, malformed_eml):
+    async def test_ingest_eml_invalid_rfc5322(self, client, malformed_eml):
         """Test handling of malformed email gracefully."""
         files = {"file": ("bad.eml", io.BytesIO(malformed_eml), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         # Should not crash - either succeed with partial data or return error
         assert response.status_code in [200, 400, 500]
@@ -337,12 +335,12 @@ Content-Type: text/plain
                 assert "document" in data
 
     @pytest.mark.integration
-    def test_ingest_eml_empty_body(self, client):
+    async def test_ingest_eml_empty_body(self, client):
         """Test handling of emails with no body content."""
         empty_body_eml = SAMPLE_EMAILS["empty_body"]
         files = {"file": ("empty.eml", io.BytesIO(empty_body_eml), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -354,11 +352,11 @@ class TestIngestEmlMetrics:
     """Tests for metrics and metadata."""
 
     @pytest.mark.integration
-    def test_ingest_eml_processing_time(self, client, sample_eml_bytes):
+    async def test_ingest_eml_processing_time(self, client, sample_eml_bytes):
         """Test that processing_time_ms is populated."""
         files = {"file": ("test.eml", io.BytesIO(sample_eml_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -366,12 +364,12 @@ class TestIngestEmlMetrics:
         assert doc["processing_time_ms"] > 0
 
     @pytest.mark.integration
-    def test_ingest_eml_encoding_detection(self, client):
+    async def test_ingest_eml_encoding_detection(self, client):
         """Test that encoding_detected field is populated."""
         eml_bytes = SAMPLE_EMAILS["latin1_encoding"]
         files = {"file": ("latin.eml", io.BytesIO(eml_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -379,11 +377,11 @@ class TestIngestEmlMetrics:
         assert doc["encoding_detected"] is not None
 
     @pytest.mark.integration
-    def test_ingest_eml_raw_size_bytes(self, client, sample_eml_bytes):
+    async def test_ingest_eml_raw_size_bytes(self, client, sample_eml_bytes):
         """Test that raw_size_bytes is tracked."""
         files = {"file": ("test.eml", io.BytesIO(sample_eml_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
@@ -391,11 +389,11 @@ class TestIngestEmlMetrics:
         assert doc["raw_size_bytes"] == len(sample_eml_bytes)
 
     @pytest.mark.integration
-    def test_ingest_eml_ingestion_timestamp(self, client, sample_eml_bytes):
+    async def test_ingest_eml_ingestion_timestamp(self, client, sample_eml_bytes):
         """Test that ingestion_timestamp is recorded."""
         files = {"file": ("test.eml", io.BytesIO(sample_eml_bytes), "message/rfc822")}
 
-        response = client.post("/api/v1/ingest/eml", files=files)
+        response = await client.post("/api/v1/ingest/eml", files=files)
 
         assert response.status_code == 200
         doc = response.json()["document"]
