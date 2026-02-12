@@ -1,3 +1,6 @@
+#tutti i file senza estensione
+*.
+
 # Python
 __pycache__/
 *.py[cod]
