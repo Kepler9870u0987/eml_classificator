@@ -59,3 +59,8 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=src/eml_classificator --cov-report=term-missing"
+markers = [
+    "unit: Unit tests that test individual functions/classes in isolation",
+    "integration: Integration tests that test component interactions and APIs",
+    "slow: Tests that take significant time to run"
+]
