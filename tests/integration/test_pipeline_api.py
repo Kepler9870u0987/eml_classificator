@@ -5,7 +5,7 @@ Tests POST /api/v1/pipeline/complete that runs Phase 1 → 2 → 3.
 """
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from unittest.mock import Mock, patch, MagicMock
 import io
 from pathlib import Path

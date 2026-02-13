@@ -5,7 +5,7 @@ Tests the POST /api/v1/classify endpoint with real FastAPI test client.
 """
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from unittest.mock import Mock, patch
 import json
 

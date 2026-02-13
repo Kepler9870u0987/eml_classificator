@@ -38,8 +38,20 @@ class MockCRMDatabase:
 
     In production, replace with actual CRM API integration.
     """
-    known_emails: Set[str]  # Exact email addresses
-    known_domains: Set[str]  # Domain patterns (@company.com)
+    known_emails: Set[str]  # Exact email addresses (normalized lowercase)
+    known_domains: Set[str]  # Domain patterns (@company.com, normalized lowercase)
+
+    def __post_init__(self):
+        """Normalize emails and domains to lowercase and strip whitespace."""
+        # Normalize known_emails
+        if isinstance(self.known_emails, list):
+            self.known_emails = set(self.known_emails)
+        self.known_emails = {email.lower().strip() for email in self.known_emails if email}
+
+        # Normalize known_domains
+        if isinstance(self.known_domains, list):
+            self.known_domains = set(self.known_domains)
+        self.known_domains = {domain.lower().strip() for domain in self.known_domains if domain}
 
     @classmethod
     def load_from_config(cls) -> "MockCRMDatabase":
@@ -83,20 +95,28 @@ class MockCRMDatabase:
             known_domains=known_domains
         )
 
-    def lookup_email(self, email: str) -> tuple[str, float, str]:
+    def lookup_email(self, email: Optional[str]) -> tuple[str, float, str]:
         """
         Lookup email in mock CRM.
 
         Args:
-            email: Customer email address
+            email: Customer email address (can be None or empty)
 
         Returns:
             (match_type, confidence, source) tuple:
-            - match_type: "exact" | "domain" | "none"
+            - match_type: "exact" | "domain" | "no_match"
             - confidence: float 0.0-1.0
             - source: description of match
         """
+        # Handle None or empty email
+        if not email:
+            return ("no_match", 0.0, "no_crm_match")
+
         email_lower = email.lower().strip()
+
+        # Handle empty after stripping
+        if not email_lower:
+            return ("no_match", 0.0, "no_crm_match")
 
         # Exact email match
         if email_lower in self.known_emails:
@@ -106,10 +126,10 @@ class MockCRMDatabase:
         if '@' in email_lower:
             domain = email_lower.split('@')[1]
             if domain in self.known_domains:
-                return ("domain", 0.7, "crm_domain_match")
+                return ("domain", 0.9, "crm_domain_match")
 
         # No match
-        return ("none", 0.0, "no_crm_match")
+        return ("no_match", 0.0, "no_crm_match")
 
 
 # ============================================================================
@@ -124,6 +144,7 @@ EXISTING_CUSTOMER_SIGNALS = [
     r"(?i)\bmio.*\b(contratto|account|codice cliente)\b",
     r"(?i)\bnumero cliente\b",
     r"(?i)\bcodice fiscale.*\bregistrato\b",
+    r"(?i)\b(ho|abbiamo)\b.*\b(servizio|abbonamento|contratto)\b.*\battivo\b",
 ]
 
 # Italian text signals indicating new customer
@@ -132,6 +153,11 @@ NEW_CUSTOMER_SIGNALS = [
     r"(?i)\bvorrei diventare cliente\b",
     r"(?i)\bprima volta\b.*\b(scrivo|contatto)\b",
     r"(?i)\bnon sono ancora cliente\b",
+    r"(?i)\bnuovo cliente\b",
+    r"(?i)\binteressato ai vostri servizi\b",
+    r"(?i)\bmaggiori informazioni\b",
+    r"(?i)\bvorrei aprire\b.*\b(account|contratto)\b",
+    r"(?i)\bpotenziale cliente\b",
 ]
 
 
@@ -175,7 +201,7 @@ def detect_text_signals(text: str) -> Optional[tuple[str, List[str]]]:
 # ============================================================================
 
 def compute_customer_status(
-    from_email: str,
+    from_email: Optional[str],
     text_body: str = "",
     crm_db: Optional[MockCRMDatabase] = None
 ) -> CustomerStatus:
@@ -184,13 +210,13 @@ def compute_customer_status(
 
     Decision hierarchy:
     1. CRM exact match → existing (confidence=1.0)
-    2. CRM domain match → existing (confidence=0.7)
+    2. CRM domain match → existing (confidence=0.9)
     3. Text signals (existing) → existing (confidence=0.5)
     4. Text signals (new) → new (confidence=0.6)
     5. No CRM, no signals → new (confidence=0.8, assume new unless proven otherwise)
 
     Args:
-        from_email: Customer email address
+        from_email: Customer email address (can be None)
         text_body: Email body canonical text
         crm_db: Mock CRM database (default: load from config)
 
@@ -223,7 +249,7 @@ def compute_customer_status(
     if match_type == "domain":
         return CustomerStatus(
             value=CustomerStatusValue.EXISTING,
-            confidence=0.7,
+            confidence=0.9,
             source=crm_source
         )
 
@@ -267,7 +293,7 @@ def compute_customer_status(
 
 def override_customer_status_with_crm(
     llm_customer_status: CustomerStatus,
-    from_email: str,
+    from_email: Optional[str],
     text_body: str = "",
     crm_db: Optional[MockCRMDatabase] = None
 ) -> CustomerStatus:

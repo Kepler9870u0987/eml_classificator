@@ -21,7 +21,13 @@ from eml_classificator.classification.schemas import (
     SentimentValue,
     PriorityValue,
     CustomerStatusValue,
-    ClassificationResult
+    ClassificationResult,
+    TopicAssignment,
+    KeywordInText,
+    Evidence,
+    Priority,
+    Sentiment,
+    CustomerStatus
 )
 
 
@@ -154,25 +160,27 @@ class TestEmailClassifier:
             mock_validation_result.cleaned_data = MOCK_VALID_LLM_OUTPUT
             mock_validate.return_value = mock_validation_result
 
-            mock_override_status.return_value = Mock(
+            mock_override_status.return_value = CustomerStatus(
                 value=CustomerStatusValue.EXISTING,
                 confidence=1.0,
                 source="crm_exact_match"
             )
 
-            mock_override_priority.return_value = Mock(
+            mock_override_priority.return_value = Priority(
                 value=PriorityValue.HIGH,
                 confidence=0.9,
                 signals=["test"],
                 raw_score=5.0
             )
 
-            mock_adjust_conf.return_value = [Mock(
-                label_id=TopicLabel.FATTURAZIONE,
-                confidence=0.92,
-                keywords_in_text=[Mock()],
-                evidence=[Mock()]
-            )]
+            mock_adjust_conf.return_value = [
+                TopicAssignment(
+                    label_id=TopicLabel.FATTURAZIONE,
+                    confidence=0.92,
+                    keywords_in_text=[KeywordInText(candidate_id="abc123", lemma="fattura", count=1)],
+                    evidence=[Evidence(quote="test evidence")]
+                )
+            ]
 
             mock_version.return_value = Mock(model_dump=lambda: {"phase": 3})
 
@@ -252,23 +260,27 @@ class TestEmailClassifier:
 
             mock_should_retry.return_value = True
 
-            mock_override_status.return_value = Mock(
+            mock_override_status.return_value = CustomerStatus(
                 value=CustomerStatusValue.NEW,
                 confidence=0.8,
                 source="default"
             )
 
-            mock_override_priority.return_value = Mock(
+            mock_override_priority.return_value = Priority(
                 value=PriorityValue.LOW,
                 confidence=0.7,
                 signals=[],
                 raw_score=1.0
             )
 
-            mock_adjust_conf.return_value = [Mock(
-                label_id=TopicLabel.UNKNOWN_TOPIC,
-                confidence=0.5
-            )]
+            mock_adjust_conf.return_value = [
+                TopicAssignment(
+                    label_id=TopicLabel.UNKNOWN_TOPIC,
+                    confidence=0.5,
+                    keywords_in_text=[KeywordInText(candidate_id="abc", lemma="test", count=1)],
+                    evidence=[Evidence(quote="test")]
+                )
+            ]
 
             mock_version.return_value = Mock(model_dump=lambda: {})
 
@@ -511,20 +523,27 @@ class TestPostProcessing:
             )
 
             # Mock override to verify it's called
-            mock_override_status.return_value = Mock(
+            mock_override_status.return_value = CustomerStatus(
                 value=CustomerStatusValue.EXISTING,
                 confidence=1.0,
                 source="crm_exact_match"
             )
 
-            mock_override_priority.return_value = Mock(
+            mock_override_priority.return_value = Priority(
                 value=PriorityValue.HIGH,
                 confidence=0.9,
                 signals=[],
                 raw_score=5.0
             )
 
-            mock_adjust.return_value = [Mock()]
+            mock_adjust.return_value = [
+                TopicAssignment(
+                    label_id=TopicLabel.FATTURAZIONE,
+                    confidence=0.9,
+                    keywords_in_text=[KeywordInText(candidate_id="abc123", lemma="fattura", count=1)],
+                    evidence=[Evidence(quote="test")]
+                )
+            ]
             mock_version.return_value = Mock(model_dump=lambda: {})
 
             result = classifier.classify(
@@ -584,9 +603,16 @@ class TestMetadataGeneration:
                 warnings=["test warning"],
                 cleaned_data=MOCK_VALID_LLM_OUTPUT
             )
-            mock_override_status.return_value = Mock(value=CustomerStatusValue.NEW, confidence=0.8, source="default")
-            mock_override_priority.return_value = Mock(value=PriorityValue.LOW, confidence=0.7, signals=[], raw_score=1.0)
-            mock_adjust.return_value = [Mock()]
+            mock_override_status.return_value = CustomerStatus(value=CustomerStatusValue.NEW, confidence=0.8, source="default")
+            mock_override_priority.return_value = Priority(value=PriorityValue.LOW, confidence=0.7, signals=[], raw_score=1.0)
+            mock_adjust.return_value = [
+                TopicAssignment(
+                    label_id=TopicLabel.FATTURAZIONE,
+                    confidence=0.9,
+                    keywords_in_text=[KeywordInText(candidate_id="abc123", lemma="fattura", count=1)],
+                    evidence=[Evidence(quote="test")]
+                )
+            ]
             mock_version.return_value = Mock(model_dump=lambda: {"phase": 3})
 
             result = classifier.classify(

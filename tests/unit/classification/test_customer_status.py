@@ -301,7 +301,8 @@ class TestOverrideCustomerStatus:
         """Test LLM guess is overridden by CRM exact match."""
         llm_status = CustomerStatus(
             value=CustomerStatusValue.UNKNOWN,
-            confidence=0.5
+            confidence=0.5,
+            source="llm_guess"
         )
 
         crm = MockCRMDatabase(
@@ -325,7 +326,8 @@ class TestOverrideCustomerStatus:
         """Test LLM guess is overridden by text signal."""
         llm_status = CustomerStatus(
             value=CustomerStatusValue.UNKNOWN,
-            confidence=0.3
+            confidence=0.3,
+            source="llm_guess"
         )
 
         crm = MockCRMDatabase(known_emails=[], known_domains=[])
@@ -345,7 +347,8 @@ class TestOverrideCustomerStatus:
         """Test default behavior when no deterministic signals."""
         llm_status = CustomerStatus(
             value=CustomerStatusValue.UNKNOWN,
-            confidence=0.4
+            confidence=0.4,
+            source="llm_guess"
         )
 
         crm = MockCRMDatabase(known_emails=[], known_domains=[])
