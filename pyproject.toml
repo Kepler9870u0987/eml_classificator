@@ -16,6 +16,11 @@ python-multipart = "^0.0.9"
 structlog = "^24.1.0"
 html2text = "^2020.1.16"
 charset-normalizer = "^3.3.2"
+# Phase 2: Candidate generation dependencies
+keybert = "^0.8.5"
+sentence-transformers = "^3.0.0"
+spacy = "^3.8.0"
+numpy = "^1.26.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
