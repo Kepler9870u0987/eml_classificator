@@ -231,4 +231,6 @@ def sample_email_document():
         ),
         ingestion_timestamp=datetime(2025, 2, 13, 9, 5, 0),
         processing_time_ms=50.0,
+        raw_size_bytes=2048,
+        encoding_detected="utf-8",
     )

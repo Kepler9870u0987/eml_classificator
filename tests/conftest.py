@@ -192,6 +192,109 @@ def test_pii_salt() -> str:
     return "test-salt-for-hashing-pii-data"
 
 
+@pytest.fixture
+def sample_email_document():
+    """
+    Sample EmailDocument for Phase 2 candidate testing (available globally).
+
+    Returns:
+        EmailDocument instance with Italian text for testing
+    """
+    from eml_classificator.models.email_document import EmailDocument, EmailHeaders
+    from eml_classificator.models.pipeline_version import PipelineVersion
+
+    return EmailDocument(
+        document_id="test-doc-id-12345",
+        headers=EmailHeaders(
+            from_address="mario.rossi@example.com",
+            to_addresses=["support@company.com"],
+            cc_addresses=[],
+            subject="Problema con la fattura",
+            date=datetime(2025, 2, 13, 9, 0, 0),
+            message_id="<test@example.com>",
+            in_reply_to=None,
+            references=[],
+            extra_headers={},
+        ),
+        body_text="Buongiorno, ho un problema urgente con la fattura numero 12345. Grazie.",
+        body_html=None,
+        canonical_text="Buongiorno, ho un problema urgente con la fattura numero 12345.",
+        attachments=[],
+        removed_sections=[],
+        pii_redacted=False,
+        pii_redaction_log=[],
+        pipeline_version=PipelineVersion(
+            dictionary_version=1,
+            model_version="test-model-1.0",
+            parser_version="eml-parser-1.0.0",
+            stoplist_version="stopwords-it-2025.1",
+            ner_model_version="it_core_news_lg-3.8.0",
+            schema_version="json-schema-v2.0",
+            tool_calling_version="test-tool-calling-1.0",
+            canonicalization_version="canon-1.0.0",
+            pii_redaction_version="pii-redact-1.0.0",
+            pii_redaction_level="standard",
+        ),
+        ingestion_timestamp=datetime(2025, 2, 13, 9, 5, 0),
+        processing_time_ms=50.0,
+        raw_size_bytes=2048,
+        encoding_detected="utf-8",
+    )
+
+
+def create_simple_document(subject: str = "", body: str = ""):
+    """
+    Helper to create simple EmailDocument for testing.
+
+    Args:
+        subject: Email subject text
+        body: Email body text
+
+    Returns:
+        EmailDocument instance
+    """
+    from eml_classificator.models.email_document import EmailDocument, EmailHeaders
+    from eml_classificator.models.pipeline_version import PipelineVersion
+
+    return EmailDocument(
+        document_id="test-doc-id",
+        headers=EmailHeaders(
+            from_address="test@example.com",
+            to_addresses=["support@company.com"],
+            cc_addresses=[],
+            subject=subject,
+            date=datetime(2025, 2, 13, 10, 0, 0),
+            message_id="<test@example.com>",
+            in_reply_to=None,
+            references=[],
+            extra_headers={},
+        ),
+        body_text=body,
+        body_html=None,
+        canonical_text=body,
+        attachments=[],
+        removed_sections=[],
+        pii_redacted=False,
+        pii_redaction_log=[],
+        pipeline_version=PipelineVersion(
+            dictionary_version=1,
+            model_version="test-1.0",
+            parser_version="parser-1.0",
+            stoplist_version="stop-1.0",
+            ner_model_version="ner-1.0",
+            schema_version="schema-1.0",
+            tool_calling_version="tool-1.0",
+            canonicalization_version="canon-1.0",
+            pii_redaction_version="pii-1.0",
+            pii_redaction_level="standard",
+        ),
+        ingestion_timestamp=datetime(2025, 2, 13, 10, 5, 0),
+        processing_time_ms=50.0,
+        raw_size_bytes=1024,
+        encoding_detected="utf-8",
+    )
+
+
 # Configuration for pytest-asyncio
 def pytest_configure(config):
     """

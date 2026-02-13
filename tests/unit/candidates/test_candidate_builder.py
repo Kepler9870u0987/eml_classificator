@@ -61,6 +61,8 @@ def create_simple_document(subject: str = "", body: str = "") -> EmailDocument:
         ),
         ingestion_timestamp=datetime(2025, 2, 13, 10, 5, 0),
         processing_time_ms=50.0,
+        raw_size_bytes=1024,  # Added missing field
+        encoding_detected="utf-8",  # Added missing field
     )
 
 

@@ -284,7 +284,7 @@ class TestFilterCandidates:
             create_candidate("problema"),  # Valid
         ]
 
-filtered = filter_candidates(candidates, blacklist_patterns=custom_blacklist)
+        filtered = filter_candidates(candidates, blacklist_patterns=custom_blacklist)
         assert len(filtered) == 1
         assert filtered[0].term == "problema"
 

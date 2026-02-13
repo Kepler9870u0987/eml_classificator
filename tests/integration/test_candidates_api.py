@@ -53,7 +53,7 @@ class TestCandidatesExtractAPI:
 
     async def test_subject_only_email(self, async_client):
         """Test email with subject only (empty body)."""
-        from tests.unit.candidates.conftest import create_simple_document
+        from tests.conftest import create_simple_document
 
         doc = create_simple_document(subject="Fattura urgente", body="")
 
@@ -75,7 +75,7 @@ class TestCandidatesExtractAPI:
 
     async def test_body_only_email(self, async_client):
         """Test email with body only (empty subject)."""
-        from tests.unit.candidates.conftest import create_simple_document
+        from tests.conftest import create_simple_document
 
         doc = create_simple_document(subject="", body="Il cliente ha un problema")
 
@@ -109,7 +109,7 @@ class TestCandidatesExtractAPI:
         data = response.json()
 
         # Check embedding model version is set
-assert data["embedding_model_version"] != "none"
+        assert data["embedding_model_version"] != "none"
         assert "multilingual" in data["embedding_model_version"].lower()
 
         # Some candidates should have embedding scores > 0
@@ -161,7 +161,7 @@ assert data["embedding_model_version"] != "none"
 
     async def test_long_email(self, async_client):
         """Test with long email body (5000+ words)."""
-        from tests.unit.candidates.conftest import create_simple_document
+        from tests.conftest import create_simple_document
 
         long_body = " ".join(["Il cliente ha un problema con la fattura"] * 1000)
         doc = create_simple_document(subject="Test", body=long_body)
@@ -327,7 +327,7 @@ class TestResponseValidation:
 
     async def test_source_field_accuracy(self, async_client):
         """Test that source field correctly marks subject vs body."""
-        from tests.unit.candidates.conftest import create_simple_document
+        from tests.conftest import create_simple_document
 
         doc = create_simple_document(subject="urgente", body="problema")
 
@@ -427,7 +427,7 @@ class TestDeterminism:
         response1 = await async_client.post("/api/v1/candidates/extract", json=payload)
         response2 = await async_client.post("/api/v1/candidates/extract", json=payload)
 
-data1 = response1.json()
+        data1 = response1.json()
         data2 = response2.json()
 
         # Same versions
@@ -448,7 +448,7 @@ class TestErrorHandling:
 
     async def test_empty_document(self, async_client):
         """Test with empty subject and body."""
-        from tests.unit.candidates.conftest import create_simple_document
+        from tests.conftest import create_simple_document
 
         doc = create_simple_document(subject="", body="")
 
