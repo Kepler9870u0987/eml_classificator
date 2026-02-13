@@ -12,7 +12,7 @@ Based on brainstorming v2 section 3.3 (prompting "vincolato")
 and v3 specifications.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
 from eml_classificator.config import settings

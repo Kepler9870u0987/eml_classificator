@@ -139,9 +139,7 @@ def validate_llm_output_multistage(
     # 3.2: Check sentiment
     sentiment = data.get("sentiment", {})
     if sentiment.get("value") not in get_sentiment_enum():
-        result.add_error(f"Invalid sentiment value: {sent
-
-iment.get('value')}")
+        result.add_error(f"Invalid sentiment value: {sentiment.get('value')}")
 
     # 3.3: Check priority
     priority = data.get("priority", {})

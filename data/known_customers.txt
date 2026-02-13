@@ -1,0 +1,12 @@
+# Mock CRM Known Customers
+# Format: one email per line (case-insensitive)
+# Lines starting with # are comments
+
+# Sample customers
+mario.rossi@example.com
+giulia.bianchi@company.it
+paolo.verdi@cliente.it
+anna.neri@business.com
+francesco.bruno@test.it
+
+# Corporate domains handled via config: company.com, cliente.it

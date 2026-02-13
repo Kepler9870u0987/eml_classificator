@@ -11,7 +11,7 @@ from pydantic import BaseModel
 import structlog
 
 from eml_classificator.parsing.eml_parser import parse_eml_bytes
-from eml_classificator.models.email_document import build_email_document
+from eml_classificator.models.email_document import EmailDocument
 from eml_classificator.candidates import extract_candidates
 from eml_classificator.classification.classifier import classify_email
 from eml_classificator.classification.schemas import ClassificationResult
@@ -77,13 +77,19 @@ async def pipeline_complete_endpoint(
         logger.debug("pipeline_phase_1_parsing")
         eml_bytes = await eml_file.read()
 
+        # TODO: Implement full Phase 1 pipeline (parsing, canonicalization, PII redaction)
+        # For now, this requires reimplementing the full ingestion logic from ingest route
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Full pipeline endpoint requires complete Phase 1 integration. "
+                   "Use /api/v1/ingest + /api/v1/candidates + /api/v1/classify separately for now."
+        )
+
         msg = parse_eml_bytes(eml_bytes)
-        email_document = build_email_document(msg)
+        # email_document = build_email_document(msg)  # Function doesn't exist yet
 
         logger.info(
-            "pipeline_phase_1_completed",
-            message_id=email_document.message_id,
-            body_length=len(email_document.body_canonical)
+            "pipeline_phase_1_completed"
         )
 
         # Phase 2: Extract candidates
