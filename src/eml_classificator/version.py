@@ -22,6 +22,13 @@ STOPLIST_VERSION = "stopwords-it-2025.1"
 NER_MODEL_VERSION = "it_core_news_lg-3.8.2"
 SCHEMA_VERSION = "json-schema-v2.2"
 TOOL_CALLING_VERSION = "openai-tool-calling-2026"
+TAXONOMY_VERSION = "topics-v1.0"  # Italian topics taxonomy for Phase 3
+
+# Phase 3: Classification component versions (now implemented)
+CLASSIFICATION_VERSION = "classification-1.0.0"
+PRIORITY_SCORER_VERSION = "priority-scorer-1.0.0"
+CONFIDENCE_ADJUSTER_VERSION = "confidence-adjuster-1.0.0"
+CUSTOMER_STATUS_VERSION = "customer-status-1.0.0"
 
 
 def get_current_pipeline_version(pii_redaction_level: str = "standard") -> PipelineVersion:
