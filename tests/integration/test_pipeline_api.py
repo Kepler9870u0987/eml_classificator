@@ -5,7 +5,8 @@ Tests POST /api/v1/pipeline/complete that runs Phase 1 → 2 → 3.
 """
 
 import pytest
-from starlette.testclient import TestClient
+import httpx
+import asyncio
 from unittest.mock import Mock, patch, MagicMock
 import io
 from pathlib import Path
@@ -13,10 +14,47 @@ from pathlib import Path
 from eml_classificator.api.app import app
 
 
+class SyncASGIClient:
+    """Synchronous wrapper around httpx.AsyncClient for ASGI apps."""
+
+    def __init__(self, app, base_url="http://testserver"):
+        self.app = app
+        self.base_url = base_url
+
+    def _run_async(self, coro):
+        """Run async coroutine synchronously."""
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        return loop.run_until_complete(coro)
+
+    def post(self, url, **kwargs):
+        """Synchronous POST request."""
+        async def _post():
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=self.app),
+                base_url=self.base_url
+            ) as client:
+                return await client.post(url, **kwargs)
+        return self._run_async(_post())
+
+    def get(self, url, **kwargs):
+        """Synchronous GET request."""
+        async def _get():
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=self.app),
+                base_url=self.base_url
+            ) as client:
+                return await client.get(url, **kwargs)
+        return self._run_async(_get())
+
+
 @pytest.fixture
 def client():
-    """Create test client for FastAPI app."""
-    return TestClient(app)
+    """Create sync test client for FastAPI app."""
+    return SyncASGIClient(app)
 
 
 @pytest.fixture
