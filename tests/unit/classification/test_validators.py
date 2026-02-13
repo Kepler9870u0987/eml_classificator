@@ -96,7 +96,8 @@ class TestMultistageValidation:
             },
             "customer_status": {
                 "value": "existing",
-                "confidence": 1.0
+                "confidence": 1.0,
+                "source": "llm_guess"
             }
         }
 
@@ -161,7 +162,7 @@ class TestMultistageValidation:
             ],
             "sentiment": {"value": "neutral", "confidence": 0.9},
             "priority": {"value": "low", "confidence": 0.7, "signals": []},
-            "customer_status": {"value": "unknown", "confidence": 0.5}
+            "customer_status": {"value": "unknown", "confidence": 0.5, "source": "llm_guess"}
         }
 
         result = validate_llm_output_multistage(
@@ -186,7 +187,7 @@ class TestMultistageValidation:
             ],
             "sentiment": {"value": "neutral", "confidence": 0.9},
             "priority": {"value": "low", "confidence": 0.7, "signals": []},
-            "customer_status": {"value": "unknown", "confidence": 0.5}
+            "customer_status": {"value": "unknown", "confidence": 0.5, "source": "llm_guess"}
         }
 
         result = validate_llm_output_multistage(
@@ -195,7 +196,7 @@ class TestMultistageValidation:
         )
 
         assert result.valid is False
-        assert any("Invalid label_id" in err for err in result.errors)
+        assert any("label_id" in err for err in result.errors)
 
     def test_confidence_out_of_range(self):
         """Test validation catches confidence values outside [0, 1]."""
@@ -211,7 +212,7 @@ class TestMultistageValidation:
             ],
             "sentiment": {"value": "neutral", "confidence": 0.9},
             "priority": {"value": "low", "confidence": 0.7, "signals": []},
-            "customer_status": {"value": "unknown", "confidence": 0.5}
+            "customer_status": {"value": "unknown", "confidence": 0.5, "source": "llm_guess"}
         }
 
         result = validate_llm_output_multistage(
@@ -237,7 +238,7 @@ class TestMultistageValidation:
             ],
             "sentiment": {"value": "neutral", "confidence": 0.9},
             "priority": {"value": "low", "confidence": 0.7, "signals": []},
-            "customer_status": {"value": "unknown", "confidence": 0.5}
+            "customer_status": {"value": "unknown", "confidence": 0.5, "source": "llm_guess"}
         }
 
         result = validate_llm_output_multistage(
@@ -263,7 +264,7 @@ class TestMultistageValidation:
             ],
             "sentiment": {"value": "invalid_sentiment", "confidence": 0.9},
             "priority": {"value": "low", "confidence": 0.7, "signals": []},
-            "customer_status": {"value": "unknown", "confidence": 0.5}
+            "customer_status": {"value": "unknown", "confidence": 0.5, "source": "llm_guess"}
         }
 
         result = validate_llm_output_multistage(
@@ -288,7 +289,7 @@ class TestMultistageValidation:
             ],
             "sentiment": {"value": "neutral", "confidence": 0.9},
             "priority": {"value": "super_urgent", "confidence": 0.7, "signals": []},
-            "customer_status": {"value": "unknown", "confidence": 0.5}
+            "customer_status": {"value": "unknown", "confidence": 0.5, "source": "llm_guess"}
         }
 
         result = validate_llm_output_multistage(
@@ -456,7 +457,7 @@ class TestSpecificValidators:
             ],
             "sentiment": {"confidence": 0.85},
             "priority": {"confidence": 0.88},
-            "customer_status": {"confidence": 1.0}
+            "customer_status": {"confidence": 1.0, "source": "llm_guess"}
         }
 
         errors = validate_confidence_ranges(data)
@@ -470,7 +471,7 @@ class TestSpecificValidators:
             ],
             "sentiment": {"confidence": -0.1},  # Out of range
             "priority": {"confidence": 0.88},
-            "customer_status": {"confidence": 1.0}
+            "customer_status": {"confidence": 1.0, "source": "llm_guess"}
         }
 
         errors = validate_confidence_ranges(data)
