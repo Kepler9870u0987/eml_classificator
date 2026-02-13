@@ -12,7 +12,7 @@ import structlog
 from ..version import API_VERSION
 from ..config import settings
 from ..logging_config import setup_logging
-from .routes import health, version, ingest
+from .routes import health, version, ingest, candidates
 from .middleware import (
     setup_logging_middleware,
     setup_error_handling_middleware,
@@ -49,8 +49,8 @@ def create_app() -> FastAPI:
         Configured FastAPI app instance
     """
     app = FastAPI(
-        title="Email Classification Pipeline - Ingestion Layer",
-        description="Deterministic email parsing, canonicalization, and PII redaction",
+        title="Email Classification Pipeline - Ingestion & Candidate Generation",
+        description="Deterministic email parsing, canonicalization, PII redaction, and keyword candidate extraction",
         version=API_VERSION,
         lifespan=lifespan,
         docs_url="/docs",
@@ -77,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, tags=["Health"])
     app.include_router(version.router, prefix="/api/v1", tags=["Version"])
     app.include_router(ingest.router, prefix="/api/v1/ingest", tags=["Ingestion"])
+    app.include_router(candidates.router, tags=["Candidates"])  # Phase 2
 
     return app
 

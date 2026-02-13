@@ -35,6 +35,19 @@ class Settings(BaseSettings):
     enable_metrics: bool = True
     metrics_port: int = 9090
 
+    # Phase 2: Candidate generation
+    enable_embeddings: bool = True
+    keybert_top_n: int = 50
+    keybert_diversity: float = 0.7
+    candidate_min_term_length: int = 3
+    candidate_max_ngram: int = 3
+    spacy_model_name: str = "it_core_news_lg"
+
+    # Composite scoring weights
+    score_weight_count: float = 0.3
+    score_weight_embedding: float = 0.5
+    score_weight_subject_bonus: float = 0.2
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
