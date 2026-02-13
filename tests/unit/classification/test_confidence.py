@@ -167,7 +167,8 @@ class TestKeywordQualityScore:
 
     def test_keyword_quality_no_keywords(self):
         """Test keyword quality with no keywords."""
-        topic = TopicAssignment(
+        # Use model_construct to bypass validation for edge case testing
+        topic = TopicAssignment.model_construct(
             label_id=TopicLabel.UNKNOWN_TOPIC,
             confidence=0.5,
             keywords_in_text=[],  # Empty
@@ -206,7 +207,8 @@ class TestEvidenceCoverageScore:
 
     def test_evidence_coverage_no_evidence(self):
         """Test evidence coverage with no evidence."""
-        topic = TopicAssignment(
+        # Use model_construct to bypass validation for edge case testing
+        topic = TopicAssignment.model_construct(
             label_id=TopicLabel.FATTURAZIONE,
             confidence=0.9,
             keywords_in_text=[KeywordInText(candidate_id="abc", lemma="x", count=1)],
@@ -250,7 +252,8 @@ class TestEvidenceCoverageScore:
 
     def test_evidence_coverage_more_than_two(self):
         """Test evidence coverage caps at 1.0 for more than 2 evidence."""
-        topic = TopicAssignment(
+        # Use model_construct to bypass validation for edge case testing
+        topic = TopicAssignment.model_construct(
             label_id=TopicLabel.FATTURAZIONE,
             confidence=0.9,
             keywords_in_text=[KeywordInText(candidate_id="abc", lemma="x", count=1)],
@@ -340,7 +343,8 @@ class TestCollisionPenaltyScore:
 
     def test_collision_penalty_no_keywords(self):
         """Test collision penalty with no keywords."""
-        topic = TopicAssignment(
+        # Use model_construct to bypass validation for edge case testing
+        topic = TopicAssignment.model_construct(
             label_id=TopicLabel.UNKNOWN_TOPIC,
             confidence=0.5,
             keywords_in_text=[],
