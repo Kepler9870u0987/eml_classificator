@@ -126,7 +126,7 @@ class MockCRMDatabase:
         if '@' in email_lower:
             domain = email_lower.split('@')[1]
             if domain in self.known_domains:
-                return ("domain", 0.9, "crm_domain_match")
+                return ("domain", 0.7, "crm_domain_match")
 
         # No match
         return ("no_match", 0.0, "no_crm_match")
@@ -210,7 +210,7 @@ def compute_customer_status(
 
     Decision hierarchy:
     1. CRM exact match → existing (confidence=1.0)
-    2. CRM domain match → existing (confidence=0.9)
+    2. CRM domain match → existing (confidence=0.7)
     3. Text signals (existing) → existing (confidence=0.5)
     4. Text signals (new) → new (confidence=0.6)
     5. No CRM, no signals → new (confidence=0.8, assume new unless proven otherwise)
@@ -249,7 +249,7 @@ def compute_customer_status(
     if match_type == "domain":
         return CustomerStatus(
             value=CustomerStatusValue.EXISTING,
-            confidence=0.9,
+            confidence=0.7,
             source=crm_source
         )
 

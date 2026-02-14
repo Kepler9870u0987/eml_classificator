@@ -59,7 +59,7 @@ class TestMockCRMDatabase:
         match_type, confidence, source = crm.lookup_email("newuser@company.com")
 
         assert match_type == "domain"
-        assert confidence == 0.9
+        assert confidence == 0.7
         assert source == "crm_domain_match"
 
     def test_crm_exact_takes_precedence_over_domain(self):
@@ -236,7 +236,7 @@ class TestComputeCustomerStatus:
         )
 
         assert status.value == CustomerStatusValue.EXISTING
-        assert status.confidence == 0.9
+        assert status.confidence == 0.7
         assert status.source == "crm_domain_match"
 
     def test_compute_status_text_signal_existing(self):
