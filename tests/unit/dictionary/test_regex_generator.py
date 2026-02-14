@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from eml_classificator.dictionary.regex_generator import generate_safe_regex, test_regex_pattern
+from eml_classificator.dictionary.regex_generator import generate_safe_regex, validate_regex_pattern
 
 
 class TestGenerateSafeRegex:
@@ -128,15 +128,15 @@ class TestGenerateSafeRegex:
         assert all(m == "test" for m in matches)
 
 
-class TestTestRegexPattern:
-    """Test test_regex_pattern utility function."""
+class TestValidateRegexPattern:
+    """Test validate_regex_pattern utility function."""
 
     def test_basic_testing(self):
         """Test basic pattern testing functionality."""
         pattern = generate_safe_regex(["fattura"])
         test_texts = ["invio fattura", "no match", "altra fattura qui"]
 
-        results = test_regex_pattern(pattern, test_texts)
+        results = validate_regex_pattern(pattern, test_texts)
 
         assert len(results) == 3
         assert len(results[0]) == 1  # One match in first text
@@ -148,7 +148,7 @@ class TestTestRegexPattern:
         pattern = generate_safe_regex(["test"])
         test_texts = ["test one test two"]
 
-        results = test_regex_pattern(pattern, test_texts)
+        results = validate_regex_pattern(pattern, test_texts)
 
         assert len(results[0]) == 2
 
@@ -157,7 +157,7 @@ class TestTestRegexPattern:
         # Create invalid pattern manually (not through generate_safe_regex)
         invalid_pattern = r"(?P<unclosed"
 
-        results = test_regex_pattern(invalid_pattern, ["any text"])
+        results = validate_regex_pattern(invalid_pattern, ["any text"])
 
         # Should return empty results, not crash
         assert results == [[]]
@@ -165,7 +165,7 @@ class TestTestRegexPattern:
     def test_empty_test_texts(self):
         """Test with empty test texts list."""
         pattern = generate_safe_regex(["test"])
-        results = test_regex_pattern(pattern, [])
+        results = validate_regex_pattern(pattern, [])
 
         assert results == []
 

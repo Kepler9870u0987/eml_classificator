@@ -61,6 +61,10 @@ def enhance_ner_with_lexicon(
         lexicon_entries_count=len(entries),
     )
 
+    # Track matched positions to avoid creating duplicate entities
+    # when multiple surface forms match the same text span
+    matched_positions = set()
+
     for entry in entries:
         lemma = entry.get("lemma")
         surface_forms = entry.get("surface_forms", [lemma] if lemma else [])
@@ -89,15 +93,19 @@ def enhance_ner_with_lexicon(
                 is_end_boundary = end_pos == len(lower_text) or not lower_text[end_pos].isalnum()
 
                 if is_start_boundary and is_end_boundary:
-                    entity = Entity(
-                        text=text[pos : pos + len(sf)],
-                        label=lemma,
-                        start=pos,
-                        end=pos + len(sf),
-                        source="lexicon",
-                        confidence=0.85,  # Mid confidence for lexicon matches
-                    )
-                    enhanced.append(entity)
+                    # Only add entity if not already matched at this position
+                    position_key = (pos, pos + len(sf), lemma)
+                    if position_key not in matched_positions:
+                        entity = Entity(
+                            text=text[pos : pos + len(sf)],
+                            label=lemma,
+                            start=pos,
+                            end=pos + len(sf),
+                            source="lexicon",
+                            confidence=0.85,  # Mid confidence for lexicon matches
+                        )
+                        enhanced.append(entity)
+                        matched_positions.add(position_key)
 
                 start = pos + 1
 

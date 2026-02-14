@@ -73,7 +73,7 @@ def generate_safe_regex(surface_forms: List[str], case_sensitive: bool = False) 
     return pattern
 
 
-def test_regex_pattern(pattern: str, test_texts: List[str]) -> List[List[str]]:
+def validate_regex_pattern(pattern: str, test_texts: List[str]) -> List[List[str]]:
     """
     Test regex pattern against sample texts.
 
@@ -88,7 +88,7 @@ def test_regex_pattern(pattern: str, test_texts: List[str]) -> List[List[str]]:
 
     Examples:
         >>> pattern = generate_safe_regex(["fattura"])
-        >>> test_regex_pattern(pattern, ["Invio fattura", "No match here"])
+        >>> validate_regex_pattern(pattern, ["Invio fattura", "No match here"])
         [['fattura'], []]
     """
     try:

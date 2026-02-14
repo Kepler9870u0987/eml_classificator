@@ -102,6 +102,27 @@ class Settings(BaseSettings):
     prompt_include_examples: bool = True
     prompt_max_body_length: int = 8000  # Truncate long emails
 
+    # Phase 3: Dictionary database settings
+    dictionary_db_url: str = "postgresql://user:password@localhost:5432/eml_classificator"
+    dictionary_db_pool_size: int = 10
+    dictionary_db_echo_sql: bool = False
+
+    # Dictionary version (incremented when dictionaries are updated)
+    current_dictionary_version: int = 1
+
+    # Keyword promoter settings (deterministic promotion rules)
+    promoter_regex_min_doc_freq: int = 3  # Min unique documents for regex promotion
+    promoter_regex_min_embedding_score: float = 0.35  # Min avg KeyBERT score for regex
+    promoter_ner_min_doc_freq: int = 2  # Min unique documents for NER promotion
+    promoter_ner_min_embedding_score: float = 0.25  # Min avg KeyBERT score for NER
+    promoter_max_collision_labels: int = 2  # Keyword in >2 labels = quarantine
+    promoter_min_total_count: int = 5  # Cumulative count minimum
+
+    # Entity extraction settings
+    entity_extraction_enable_regex: bool = True
+    entity_extraction_enable_ner: bool = True
+    entity_extraction_enable_lexicon: bool = True
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
